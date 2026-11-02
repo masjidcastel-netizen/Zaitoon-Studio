@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<script>
+window.claude=window.claude||{__fallback:true,use:async n=>n==="downloads"?{save:async({filename,data})=>{const b=data instanceof Blob?data:new Blob([data]);
+if(window.Android){Android.begin(filename,b.type||"application/octet-stream");const C=393216;for(let o=0;o<b.size;o+=C){const u=new Uint8Array(await b.slice(o,o+C).arrayBuffer());let t="";for(let i=0;i<u.length;i+=32768)t+=String.fromCharCode.apply(null,u.subarray(i,i+32768));Android.chunk(btoa(t))}Android.end()}
+else{const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=filename;a.click()}}}:null};
+</script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ZAITOONSTUDIO</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="/studio-tools.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/SkeletonUtils.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<style>
+:root{--bg:#fafaf7;--fg:#1c1b19;--mut:#6b6860;--card:#fff;--line:#e3e0d8;--acc:#6d4aff;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#161513;--fg:#f1efe9;--mut:#9a968c;--card:#201f1c;--line:#35332e;--acc:#9a82ff;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#161513;--fg:#f1efe9;--mut:#9a968c;--card:#201f1c;--line:#35332e;--acc:#9a82ff;color-scheme:dark}
+*{box-sizing:border-box}html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0 auto;background:var(--bg);color:var(--fg);font:16px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;max-width:860px;padding:14px}
+h1{font-size:22px;margin:2px 0}p.s{color:var(--mut);margin:4px 0 10px;font-size:13px}
+.step{font-size:13px;color:var(--mut);margin:14px 0 6px;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.ctl{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px}
+label{font-size:13px;color:var(--mut);display:flex;flex-direction:column;gap:2px}
+select,input[type=text],textarea{width:100%;font:inherit;color:var(--fg);background:var(--card);border:1px solid var(--line);border-radius:8px;padding:8px}
+textarea{min-height:64px;resize:vertical}
+.bar{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+button{background:var(--acc);color:#fff;border:0;border-radius:10px;padding:10px 14px;font-size:15px;font-weight:600;cursor:pointer}
+button.alt{background:var(--card);color:var(--fg);border:1px solid var(--line)}button:disabled{opacity:.5}
+canvas{max-width:100%;max-height:75vh;border-radius:12px;background:#000;display:block;margin:0 auto}
+.sc{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:6px;margin-bottom:10px}.sc input{grid-column:1/-1}.sc select{padding:6px}.sc .x{padding:6px 12px}
+.rw{display:flex;gap:6px}.rw input[type=text]{flex:1}.rw select{width:96px}input[type=color]{width:46px;height:38px;padding:2px;border:1px solid var(--line);border-radius:8px;background:var(--card)}
+label.fb{border:1px dashed var(--acc);border-radius:10px;padding:9px;text-align:center;color:var(--acc);font-weight:600;cursor:pointer;flex-direction:row;justify-content:center;font-size:14px}
+button:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-visible,label.fb:focus-within{outline:2px solid var(--acc);outline-offset:2px}
+label.ck{flex-direction:row;align-items:center;gap:6px}
+#st{position:sticky;bottom:6px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 12px;font-size:14px;margin-top:10px}
+.lib-item{display:grid;gap:6px;border:1px solid var(--line);border-radius:8px;padding:12px;background:var(--card)}
+#libitems{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px;max-height:350px;overflow:auto;margin:12px 0}#i3dpreview{width:100%;height:auto;aspect-ratio:4/3;max-width:640px;touch-action:none;border:1px solid var(--line);background:var(--card)}#i3dpreview[hidden]{display:none}.lib-item .s{margin:0}button{border-radius:8px}#i3stats{min-height:24px}
+</style></head><body>
+<h1>🎬 Zaitoon Studio</h1>
+<p class="s">AI writes the story. 3D cartoon characters act it out with music and voices.</p>
+<canvas id="cv" width="1280" height="720" role="img" aria-label="Animated cartoon preview"></canvas>
+<div class="bar"><button id="pv">▶ Play with voice</button><button id="rv">🎬 Save video (MP4 or WebM)</button><button id="xg" class="alt">🧍 Animated .glb</button><button id="x3" class="alt">📦 Export pack</button><button id="sn" class="alt">📸 Snapshot</button><button id="sp" class="alt">⏹ Stop</button></div>
+<div class="step">1. Tell the AI your story</div>
+<div class="ctl"><label>Language<select id="lg"></select></label><label>Music<select id="mo"><option>Sega Morisien</option><option>Happy</option><option>Calm</option><option>Adventure</option></select></label><label>Music volume<input type="range" id="mv" min="0" max="100" value="44"></label><label>Video quality<select id="qs"><option value="360">360p · smallest</option><option value="480" selected>480p · compact</option><option value="720">HD 720p</option><option value="1080">Full HD 1080p</option><option value="1440">Quad HD 1440p</option><option value="2160">4K 2160p</option></select></label><label class="ck"><input type="checkbox" id="compact" checked> Smaller video files</label><label>Format<select id="fm"><option value="h">Landscape 16:9 (YouTube)</option><option value="v">Vertical 9:16 (TikTok, Reels)</option></select></label><label>Setting<select id="wd"><option value="beach">Beach (Mauritius)</option><option value="forest">Forest</option><option value="city">City</option><option value="space">Space</option><option value="snow">Snow</option></select></label></div>
+<div class="ctl" style="margin-top:8px"><label>Voice 1<select id="v0"></select></label><label>Voice 2<select id="v1"></select></label></div><div class="bar"><button id="tv" class="alt">🔊 Test voices</button></div><p class="s" id="vh"></p>
+<textarea id="id" placeholder="Example: Two friends discover a magic shell on a beach in Mauritius"></textarea>
+<div class="bar"><button id="ai">✨ Create story with AI</button><label class="ck"><input type="checkbox" id="mu" checked> Music</label></div>
+<div class="step">Series &amp; length</div>
+<div class="ctl"><label>Episode<select id="ep"></select></label><label>Episode title<input type="text" id="et" maxlength="60"></label><label>Story length (AI)<select id="sz"><option value="6 to 8">Short (about 1 min)</option><option value="14 to 18">Medium (about 3 min)</option><option value="26 to 32">Long (about 5 min)</option></select></label></div>
+<div class="bar"><button id="ne" class="alt">➕ New episode</button><button id="de" class="alt">🗑 Delete episode</button><button id="am" class="alt">✨ AI: add more lines</button><button id="aie" class="alt">✨ AI: next episode</button><button id="rall" class="alt">🎬 Save all episodes</button></div>
+<p class="s" id="len"></p>
+<div class="step">Characters &amp; sound</div>
+<div class="ctl"><label>Character 1<span class="rw"><input type="text" id="cn0" maxlength="20"><input type="color" id="cc0"><select id="cs0" aria-label="Look"><option value="bird">🐦 Bird</option><option value="cat">🐱 Cat</option><option value="bear">🐻 Bear</option><option value="robot">🤖 Robot</option><option value="muslim">Muslim character</option></select></span></label><label>Character 2<span class="rw"><input type="text" id="cn1" maxlength="20"><input type="color" id="cc1"><select id="cs1" aria-label="Look"><option value="bird">🐦 Bird</option><option value="cat">🐱 Cat</option><option value="bear">🐻 Bear</option><option value="robot">🤖 Robot</option><option value="muslim">Muslim character</option></select></span></label></div>
+<div class="ctl" style="margin-top:8px"><label class="fb">🧍 My 3D character 1 (.glb)<input type="file" id="g0" accept=".glb" hidden></label><label class="fb">🧍 My 3D character 2 (.glb)<input type="file" id="g1" accept=".glb" hidden></label><label class="fb">🎵 Import music / voice-over<input type="file" id="fa" accept="audio/*" hidden></label></div>
+<div class="bar"><button id="rs3" class="alt">↺ Reset characters</button><button id="xa" class="alt">✖ Remove audio</button></div>
+<div class="step">3D character workshop</div>
+<div class="ctl"><label>Character<select id="wkc"><option value="0">Character 1</option><option value="1">Character 2</option></select></label>
+<label>Left / right <b id="wkxv">0</b><input type="range" id="wkx" min="-2" max="2" step="0.01" value="0"></label>
+<label>Up / down <b id="wkyv">0</b><input type="range" id="wky" min="-1" max="2" step="0.01" value="0"></label>
+<label>Near / far <b id="wkzv">0</b><input type="range" id="wkz" min="-3" max="2" step="0.01" value="0"></label>
+<label>Turn <b id="wkrv">0</b>°<input type="range" id="wkr" min="-180" max="180" step="1" value="0"></label>
+<label>Size <b id="wksv">1</b>×<input type="range" id="wks" min="0.3" max="2.5" step="0.01" value="1"></label></div>
+<div class="bar"><span class="s">Preview animation:</span><button class="alt wka" data-a="">⏹ Off</button><button class="alt wka" data-a="idle">🧍 Idle</button><button class="alt wka" data-a="talk">🗣 Talk</button><button class="alt wka" data-a="wave">👋 Wave</button><button class="alt wka" data-a="jump">⬆️ Jump</button><button class="alt wka" data-a="dance">💃 Dance</button><button class="alt wka" data-a="greet">Greeting</button><button class="alt wka" data-a="nod">Nod</button><button class="alt wka" data-a="walk">Walk</button><button class="alt wka" data-a="celebrate">Celebrate</button><button id="wkreset" class="alt">↺ Reset position</button></div>
+<div class="step">Muslim character library</div>
+<p class="s">Fictional cartoon presets · saved on this device</p>
+<div class="ctl"><label>Search characters<input id="libsearch" type="text" placeholder="Find a name"></label><label>Collection<select id="libfilter"><option value="all">All characters</option><option value="imam">Imam</option><option value="community">Community</option><option value="custom">My collection</option></select></label></div><p id="libcount" class="s"></p><div id="libitems"></div>
+<div class="ctl"><label>Name<input id="libname" type="text" maxlength="20"></label><label>Clothing<select id="libclothes"><option value="robe">Long robe</option><option value="tunic">Tunic and trousers</option></select></label><label>Clothing color<input id="libcolor" type="color"></label><label>Trim and headwear color<input id="libtrim" type="color"></label><label>Skin color<input id="libskin" type="color"></label><label>Accessories<select id="libaccessory"><option value="cap">Prayer cap</option><option value="turban">Turban</option><option value="glasses">Cap and glasses</option><option value="none">None</option></select></label><label>Assigned animation<select id="libanimation"></select></label></div>
+<div class="bar"><button id="libapply">Apply to character</button><button id="libpreview" class="alt">▶ Preview animation</button><button id="libstop" class="alt">⏹ Stop preview</button><button id="libsave" class="alt">Save character</button><button id="libduplicate" class="alt">Duplicate</button><button id="libreset" class="alt">↺ Reset character</button></div>
+<div class="step">Image → 3D preview</div>
+<div class="bar"><label class="fb">🖼 Image → 3D character (.glb)<input type="file" id="i3d" accept="image/*" hidden></label><label>Extrusion depth <b id="i3depthvalue">0.3</b><input type="range" id="i3dd" min="0.05" max="0.8" step="0.01" value="0.3"></label><label>Mesh detail<select id="i3detail"><option value="64">64 pixels · light</option><option value="128" selected>128 pixels · balanced</option><option value="192">192 pixels · detailed</option><option value="256">256 pixels · finest</option></select></label><label>Material<select id="i3mode"><option value="image">Original image colors</option><option value="solid">Solid color</option></select></label><label>Material color<input id="i3color" type="color" value="#25836b"></label><button id="i3duse" class="alt" disabled>Use on character</button><button id="i3dl" class="alt" disabled>⬇ Download .glb</button></div>
+<canvas id="i3dpreview" hidden width="640" height="480" aria-label="Image to 3D model preview"></canvas><p id="i3stats" class="s" role="status"></p><p class="s">Extruded image silhouette, not a reconstructed fully rigged character.</p>
+<div class="ctl"><label>Soft light <b id="wlav">0.85</b><input type="range" id="wla" min="0" max="2" step="0.01" value="0.85"></label>
+<label>Sun light <b id="wldv">0.7</b><input type="range" id="wld" min="0" max="3" step="0.01" value="0.7"></label>
+<label>Sun angle <b id="wlrv">27</b>°<input type="range" id="wlr" min="-180" max="180" step="1" value="27"></label>
+<label>Sun height <b id="wlhv">4</b><input type="range" id="wlh" min="0.5" max="8" step="0.1" value="4"></label>
+<label>Sun color<input type="color" id="wlc" value="#ffffff"></label>
+<label>Soft color<input type="color" id="wlac" value="#ffffff"></label></div>
+<div class="step">Video editing</div>
+<div class="bar"><label class="fb">🎞️ Import background video<input type="file" id="fv" accept="video/*" hidden></label><button id="xv" class="alt">✖ Remove clip</button></div>
+<div class="ctl"><label>Clip start <b id="bsv">0</b>s<input type="range" id="bs" min="0" max="10" step="0.1" value="0"></label><label>Clip end <b id="bev">10</b>s<input type="range" id="be" min="0" max="10" step="0.1" value="10"></label></div>
+<div class="ctl" style="margin-top:8px"><label>Brightness<input type="range" id="eb" min="50" max="150" value="100"></label><label>Contrast<input type="range" id="ec" min="50" max="160" value="100"></label><label>Color<input type="range" id="es" min="0" max="200" value="100"></label><label>Effect<select id="ex"></select></label><label class="ck"><input type="checkbox" id="ef" checked> Fade in/out</label></div>
+<div class="step">2. Edit the dialogue</div>
+<div id="sl"></div><div class="bar"><button id="al" class="alt">➕ Add line</button><button id="nw" class="alt">🆕 Reset to demo</button></div>
+<div class="step">3. Collaborate (free)</div>
+<div class="ctl"><label>Room code<input type="text" id="rc" placeholder="e.g. team1"></label></div>
+<div class="bar"><button id="jr" class="alt">👥 Join live room</button><button id="pa" class="alt">▶ Play for everyone</button><button id="sv" class="alt">☁️ Save to team library</button><button id="ld" class="alt">📂 Open library</button></div>
+<p class="s" id="ph">Share this page's link and a room code. Everyone in the room sees story edits live.</p><div id="lb"></div>
+<p class="s">• Mauritian Creole: no phone has a Creole voice yet, so a French voice reads it (closest sound). AI Creole can have mistakes, so edit the lines above.<br>• A background video plays behind the characters (muted). Trim it, colour-grade it and pick a Setting for new scenes.<br>• Only import characters, music and voices you have the right to use (CC0 packs are safest). Imported characters play their built-in animations; the speaking effect is a gentle bounce.<br>• Most human voices: Chrome or Edge (online Natural voices), or an iPhone/Mac with an Enhanced or Premium voice installed.<br>• “Save video” records at the “Video quality” you picked (480p by default), as MP4 when your browser supports it, otherwise WebM, with the 3D animation, music and subtitles. Browsers cannot record the speech voice, so to keep the voice, press “Play with voice” while using your phone's screen recorder.</p>
+<div id="st" role="status" aria-live="polite">Demo loaded in Kreol Morisien. Press Play, or write your own story.</div>
+<script>
+const $=s=>document.querySelector(s),say=m=>$("#st").textContent=m,sleep=ms=>new Promise(r=>setTimeout(r,ms)),esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const LANGS={"English":"en-US","Français":"fr-FR","Urdu اردو":"ur-PK","Arabic العربية":"ar-SA","Kreol Morisien":"fr-FR","Hindi हिन्दी":"hi-IN","Tamil தமிழ்":"ta-IN","Español":"es-ES","Português":"pt-PT","Deutsch":"de-DE","Chinese 中文":"zh-CN","Italiano":"it-IT","Japanese 日本語":"ja-JP"},RTL=["ar-SA","ur-PK"];
+const NAT={"Urdu اردو":"natural spoken Urdu in Urdu script, warm and conversational, with ، and ۔ punctuation, no English words","Arabic العربية":"clear conversational Modern Standard Arabic with full tashkeel (diacritics) so text-to-speech reads it correctly, with ، and ؟ punctuation","Français":"natural, fluent spoken French with correct accents and punctuation","English":"natural, fluent, friendly spoken English with contractions"};
+$("#lg").innerHTML=Object.keys(LANGS).map(k=>`<option>${k}</option>`).join("");$("#lg").value="Kreol Morisien";
+let S={title:"Dodo ek Tizan",chars:[{name:"Dodo",color:"#3aa6ff"},{name:"Tizan",color:"#ff9a3c"}],scenes:[
+{who:0,text:"Bonzour zot tou! Mo apel Dodo, sa zoli zwazo Moris!",mood:"happy",action:"wave",bg:"#8fd3ff"},
+{who:1,text:"Ki manyer Dodo? Ala enn zoli zour pou al lamer!",mood:"happy",action:"jump",bg:"#9be0ff"},
+{who:0,text:"Wi! Annou al zoue dan lasab ek manze gato pima!",mood:"surprised",action:"dance",bg:"#ffd59a"},
+{who:1,text:"Mo kontan Moris. Nou pou rest zame!",mood:"happy",action:"dance",bg:"#ffb38a"}]};
+const IM=[null,null],MX=[null,null],DEMO=JSON.parse(JSON.stringify(S));let cur=-1,run=0,speaking=false,LW=960,LH=540,V=false,WN="beach",BKon=false,ST=0,ET=0,FS="none";
+/* ---------- 3D world ---------- */
+const R=new THREE.WebGLRenderer({antialias:true,alpha:true,preserveDrawingBuffer:true});R.setSize(1280,720);R.outputEncoding=THREE.sRGBEncoding;
+const sc=new THREE.Scene(),bgc=new THREE.Color(0x8fd3ff);sc.background=bgc;const cam=new THREE.PerspectiveCamera(40,16/9,.1,50);cam.position.set(0,1.5,5.2);
+sc.add(new THREE.AmbientLight(0xffffff,.85));const dl=new THREE.DirectionalLight(0xffffff,.7);dl.position.set(2,4,4);sc.add(dl);
+const M=(c,r=.7)=>new THREE.MeshStandardMaterial({color:c,roughness:r});
+const SP=new THREE.SphereGeometry(1,40,28);
+function mesh(g,m,x,y,z,s,par){const o=new THREE.Mesh(g,m);o.position.set(x,y,z);if(s)o.scale.set(...s);par.add(o);return o}
+const gr=mesh(new THREE.CircleGeometry(9,40),M(0xf2d58f,1),0,0,0,0,sc);gr.rotation.x=-Math.PI/2;
+const sea=mesh(new THREE.PlaneGeometry(40,6),M(0x2fa8d8,.3),0,.01,-6,0,sc);sea.rotation.x=-Math.PI/2;sea.position.set(0,.02,-5);
+const SUN=mesh(SP,new THREE.MeshBasicMaterial({color:0xffe066}),-4,4.2,-7,[.9,.9,.9],sc);
+function palm(x,z){const g=new THREE.Group();g.position.set(x,0,z);g.userData.x0=x;sc.add(g);const t=mesh(new THREE.CylinderGeometry(.1,.17,2.3,8),M(0x8a5a2b),0,1.15,0,0,g);t.rotation.z=x>0?.12:-.12;for(let k=0;k<6;k++){const l=mesh(SP,M(0x2e9e4f),0,2.3,0,[.8,.07,.22],g);l.position.x=Math.cos(k*1.05)*.55;l.position.z=Math.sin(k*1.05)*.55;l.rotation.y=-k*1.05}return g}
+const PL=[palm(-3.4,-2.5),palm(3.5,-2.8),palm(-5,-4)],WG={},WORLDS={beach:{ground:0xf2d58f,sky:"#8fd3ff"},forest:{ground:0x5aa84a,sky:"#a8dcf5"},city:{ground:0x777c85,sky:"#b7cfe6"},space:{ground:0x2b2f55,sky:"#0b1030"},snow:{ground:0xf4f9ff,sky:"#cfe6f7"}};
+(function(){const mk=n=>{const g=new THREE.Group();sc.add(g);WG[n]=g;return g};
+ const f=mk("forest");for(let k=0;k<9;k++){const x=-5+k*1.25,z=-2-(k%3)*1.2;mesh(new THREE.CylinderGeometry(.1,.15,.8,8),M(0x6b4423),x,.4,z,0,f);mesh(new THREE.ConeGeometry(.55,1.6,10),M(0x2e8b3d),x,1.4,z,0,f)}
+ const c=mk("city");for(let k=0;k<8;k++){const h=1.5+(k*37%5)*.7;mesh(new THREE.BoxGeometry(1,h,1),M([0x6b7a99,0x8a93a8,0x5a6478][k%3]),-5+k*1.4,h/2,-3-(k%2)*1.5,0,c)}
+ const p=mk("space");for(let k=0;k<80;k++)mesh(SP,new THREE.MeshBasicMaterial({color:0xffffff}),(Math.random()-.5)*16,Math.random()*7,-6-Math.random()*4,[.03,.03,.03],p);mesh(SP,M(0xd98a4a),-3.5,3.2,-5,[1.1,1.1,1.1],p);mesh(SP,M(0x7fb0ff),3.8,4,-6,[.6,.6,.6],p);
+ const n=mk("snow");for(let k=0;k<8;k++){const x=-5+k*1.4,z=-2.5-(k%3);mesh(new THREE.ConeGeometry(.6,1.5,10),M(0xe8f4ff),x,.75,z,0,n);mesh(SP,M(0xffffff),x+.2,.2,z+1,[.35,.3,.35],n)}})();
+function applyWorld(){const w=WORLDS[WN]||WORLDS.beach,b=WN==="beach"&&!BKon;gr.material.color.set(w.ground);gr.visible=!BKon;sea.visible=b;SUN.visible=b;PL.forEach(p=>p.visible=b);for(const k in WG)WG[k].visible=k===WN&&!BKon;sc.background=BKon?null:bgc;if(!BKon)bgc.set(w.sky)}
+applyWorld();
+function deco(h,st,i,c){const D=(g,m,x,y,z,s)=>mesh(g,m,x,y,z,s,h);
+ if(st==="cat"){for(const s of[-1,1])D(new THREE.ConeGeometry(.2,.42,4),c,s*.34,.55,0,[1,1,1]);D(SP,M(0xff8aa0),0,-.05,.57,[.07,.05,.04])}
+ else if(st==="bear"){for(const s of[-1,1])D(SP,c,s*.43,.45,0,[.2,.2,.2]);D(SP,M(0xf2dcc0),0,-.14,.42,[.28,.2,.16]);D(SP,M(0x222222),0,-.06,.6,[.07,.05,.04])}
+ else if(st==="robot"){D(new THREE.CylinderGeometry(.03,.03,.3,8),M(0x999999),0,.7,0,[1,1,1]);D(SP,M(0xff3b3b),0,.9,0,[.1,.1,.1]);for(const s of[-1,1])D(SP,M(0x9aa3ad),s*.62,0,0,[.1,.12,.1])}
+ else{D(new THREE.ConeGeometry(.12,.3,12),M(0xffb020),0,.05,.6,[1,1,1]).rotation.x=Math.PI/2;if(i)D(new THREE.ConeGeometry(.4,.55,16),M(0xe03a3a),0,.65,0,[1,1,1]);else{D(SP,M(0xffd24a),0,.62,0,[.08,.2,.08]);D(SP,M(0xffd24a),0,.85,0,[.12,.12,.12])}}}
+function restyle(i){const o=CH[i],p=o.position.x;sc.remove(o);const g=makeChar(new THREE.Color(S.chars[i].color).getHex(),i,S.chars[i].style||"bird");g.position.x=p;g.visible=!IM[i];CH[i]=g}
+function makeChar(color,i,st){const g=new THREE.Group();sc.add(g);const c=M(color,.5);g.userData.mat=c;const w=M(0xffffff,.3),k=M(0x111111),u=g.userData;u.st=st||"bird";
+ mesh(SP,c,0,.7,0,[.55,.65,.5],g);const h=new THREE.Group();h.position.y=1.65;g.add(h);u.head=h;mesh(SP,c,0,0,0,[.62,.58,.58],h);
+ for(const s of[-1,1]){mesh(SP,w,s*.23,.1,.5,[.17,.2,.1],h);mesh(SP,k,s*.23,.09,.58,[.08,.1,.05],h);mesh(SP,M(0xff8aa0),s*.38,-.12,.5,[.1,.06,.04],h)}
+ u.mouth=mesh(SP,M(0x7a1020),0,-.22,.54,[.16,.1,.05],h);deco(h,st,i,c);
+ for(const s of[-1,1]){const p=new THREE.Group();p.position.set(s*.52,1,0);g.add(p);mesh(new THREE.CylinderGeometry(.09,.09,.6,10),c,0,-.28,0,0,p);mesh(SP,w,0,-.6,0,[.13,.13,.13],p);u[s>0?"aA":"aB"]=p;mesh(SP,c,s*.22,.08,0,[.18,.12,.2],g)}
+ g.position.x=i?1.2:-1.2;return g}
+const CH=[makeChar(0x3aa6ff,0),makeChar(0xff9a3c,1)];
+function recolor(){S.chars.forEach((c,i)=>{if(c.style==="muslim"){if(window.applyMuslim)window.applyMuslim(i,c);return}if(CH[i].userData.st!==(c.style||"bird"))restyle(i);CH[i].userData.mat.color.set(c.color)})}
+const tgt=new THREE.Color();
+function tick(){requestAnimationFrame(tick);const t=performance.now()/1000,dt=Math.min(.1,t-(tick.l||t)),cs=cur>=0&&S.scenes[cur]||null;tick.l=t;
+ CH.forEach((g,i)=>{const u=g.userData,sp=cs&&cs.who===i,a=sp?cs.action:S.chars[i].animation||"none",md=cs?cs.mood:"neutral";let y=Math.abs(Math.sin(t*2+i))*.03,ry=i?-.35:.35,aA=.2,aB=-.2,hz=0,hx=0,ms=.25;
+  if(sp&&speaking){hz=Math.sin(t*5)*.07;ms=.3+Math.abs(Math.sin(t*13))*1.1}else if(cs){hx=Math.sin(t*3+i)*.05}
+  if(sp){if(md==="sad")hx=.3;if(md==="surprised")ms=Math.max(ms,1.3);if(md==="happy"&&!speaking)ms=.7;
+   if(a==="wave")aA=2.4+Math.sin(t*10)*.5;if(a==="jump")y=Math.abs(Math.sin(t*6))*.5,aA=1.2,aB=-1.2;if(a==="dance"){ry+=Math.sin(t*4)*.5;aA=1+Math.sin(t*8)*.8;aB=-1+Math.sin(t*8)*.8;y=Math.abs(Math.sin(t*8))*.12}}
+  if(ToonTools.actions.includes(a)&&!["none","idle","talk","wave","jump","dance"].includes(a)){const p=ToonTools.pose(a,t);y=p.y;ry+=p.ry;aA=p.aA;aB=p.aB;hx=p.hx}
+  g.position.y=y;g.rotation.y=ry;u.aA.rotation.z=aA;u.aB.rotation.z=aB;u.head.rotation.z=hz;u.head.rotation.x=hx;u.mouth.scale.y=ms*.4;u.mouth.scale.x=.16*(md==="surprised"&&sp?.8:1);impAnim(i,sp,a,t,dt,y,ry)});
+ if(cs&&!BKon){tgt.set(WN==="beach"?cs.bg||"#8fd3ff":(WORLDS[WN]||WORLDS.beach).sky);bgc.lerp(tgt,.05)}
+ const tx=cs?(cs.who?.6:-.6)*(V?.5:1):0;cam.position.x+=(tx-cam.position.x)*.03;cam.position.z+=((cs?4.3:5.2)+(V?1.5:0)-cam.position.z)*.03;cam.lookAt(0,1.1,0);R.render(sc,cam);overlay();cv.dataset.sceneReady="true"}
+const cv=$("#cv"),cx=cv.getContext("2d");cx.setTransform(4/3,0,0,4/3,0,0);
+function wrap(t,w){const sep=t.includes(" ")?" ":"",L=[];let l="";for(const p of(sep?t.split(" "):[...t])){const n=l?l+sep+p:p;if(cx.measureText(n).width>w&&l){L.push(l);l=p}else l=n}L.push(l);return L}
+function card(txt,sub){cx.fillStyle="rgba(20,10,50,.55)";cx.fillRect(0,0,LW,LH);cx.fillStyle="#fff";cx.textAlign="center";const fs=V?44:64;cx.font=`bold ${fs}px system-ui,sans-serif`;const L=wrap(txt,LW-80);L.forEach((l,i)=>cx.fillText(l,LW/2,LH/2+(i-(L.length-1)/2)*(fs+8)));cx.font="28px system-ui,sans-serif";cx.fillText(sub,LW/2,LH/2+L.length*(fs+8)/2+34)}
+function overlay(){cx.clearRect(0,0,LW,LH);cx.filter=FS;if(BKon&&BK.readyState>1&&BK.videoWidth){if(BK.currentTime>=+$("#be").value||BK.ended){BK.currentTime=+$("#bs").value;BK.play()}const k=Math.max(LW/BK.videoWidth,LH/BK.videoHeight);cx.drawImage(BK,(LW-BK.videoWidth*k)/2,(LH-BK.videoHeight*k)/2,BK.videoWidth*k,BK.videoHeight*k)}cx.drawImage(R.domElement,0,0,LW,LH);cx.filter="none";cx.direction=RTL.includes(LANGS[$("#lg").value])?"rtl":"ltr";if(cur===-1)card(S.title,"✨ Zaitoon Studio");else if(cur===-2)card("Fin · The End","Mersi! Thank you!");
+ else if(S.scenes[cur]){const s=S.scenes[cur],fs=V?34:30,W=LW-(V?60:140);cx.font=`bold ${fs}px system-ui,sans-serif`;cx.textAlign="center";const L=wrap(s.text,W),h=L.length*(fs+8)+50,y0=LH-h-(V?190:18),x0=(LW-W-20)/2;cx.fillStyle="rgba(0,0,0,.6)";cx.beginPath();cx.roundRect?cx.roundRect(x0,y0,W+20,h,16):cx.rect(x0,y0,W+20,h);cx.fill();cx.fillStyle=S.chars[s.who].color;cx.font="bold 22px system-ui,sans-serif";cx.fillText(S.chars[s.who].name,LW/2,y0+30);cx.fillStyle="#fff";cx.font=`bold ${fs}px system-ui,sans-serif`;L.forEach((l,i)=>cx.fillText(l,LW/2,y0+66+i*(fs+8)))}fade()}
+function fade(){if(!$("#ef").checked)return;const n=performance.now();let a=0;if(cur===-1&&ST)a=Math.max(0,1-(n-ST)/900);if(cur===-2&&ET)a=Math.min(1,(n-ET)/1500);if(a>0){cx.fillStyle=`rgba(0,0,0,${a})`;cx.fillRect(0,0,LW,LH)}}
+const BK=document.createElement("video");BK.muted=true;BK.playsInline=true;
+tick();
+/* ---------- music ---------- */
+const MOODS={"Sega Morisien":{bpm:116,sc:[0,2,4,7,9],root:57,perc:[0,3,6]},Happy:{bpm:124,sc:[0,2,4,7,9],root:60,perc:[0,4]},Calm:{bpm:76,sc:[0,3,5,7,10],root:55,perc:[]},Adventure:{bpm:134,sc:[0,2,3,7,8],root:52,perc:[0,2,4,6]}};
+let AC,master,dest,mt=0,nb,IS=null,IA=null;const mtof=n=>440*2**((n-69)/12);
+function initAudio(){if(AC)return;AC=new AudioContext();master=AC.createGain();master.gain.value=$("#mv").value/100*.5;dest=AC.createMediaStreamDestination();master.connect(AC.destination);master.connect(dest);nb=AC.createBuffer(1,AC.sampleRate*.06,AC.sampleRate);const d=nb.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1}
+function tone(f,t,d,ty,v){const o=AC.createOscillator(),g=AC.createGain();o.type=ty;o.frequency.setValueAtTime(f,t);g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.001,t+d);o.connect(g);g.connect(master);o.start(t);o.stop(t+d+.02)}
+function kick(t){const o=AC.createOscillator(),g=AC.createGain();o.frequency.setValueAtTime(150,t);o.frequency.exponentialRampToValueAtTime(40,t+.12);g.gain.setValueAtTime(.9,t);g.gain.exponentialRampToValueAtTime(.001,t+.16);o.connect(g);g.connect(master);o.start(t);o.stop(t+.2)}
+function shake(t,v){const s=AC.createBufferSource(),f=AC.createBiquadFilter(),g=AC.createGain();s.buffer=nb;f.type="highpass";f.frequency.value=6000;g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.001,t+.05);s.connect(f);f.connect(g);g.connect(master);s.start(t)}
+function startMusic(name){stopMusic();const m=MOODS[name]||MOODS.Happy;let step=0,next=AC.currentTime+.1;mt=setInterval(()=>{while(next<AC.currentTime+.15){const n=m.sc,t=next;
+ if(step%4===0)tone(mtof(m.root-12+n[[0,0,2,1][(step/4|0)%4]]),t,.4,"sine",.55);
+ if(step%2===0||Math.random()<.35)tone(mtof(m.root+(Math.random()<.3?12:0)+n[Math.random()*n.length|0]),t,.18,"triangle",.3);
+ if(m.perc.includes(step%8))kick(t);shake(t,step%2?.12:.22);next+=60/m.bpm/2;step++}},30)}
+function stopMusic(){clearInterval(mt);if(IS){try{IS.stop()}catch(e){}IS=null}}
+function pop(){if(AC)tone(880,AC.currentTime,.1,"square",.12)}
+/* ---------- voice ---------- */
+const GOOD=/neural|natural|premium|enhanced|online|siri|wavenet/i,SYN=window.speechSynthesis;
+function voicesFor(code){const p=code.slice(0,2).toLowerCase(),n=c=>c.replace("_","-").toLowerCase();return(SYN?SYN.getVoices():[]).filter(v=>n(v.lang).startsWith(p)).map(v=>({v,s:(GOOD.test(v.name)?3:0)+(/google/i.test(v.name)?2:0)+(n(v.lang)===code.toLowerCase()?2:0)+(v.localService?0:1)})).sort((x,y)=>y.s-x.s).map(x=>x.v)}
+function fillVoices(){const L=$("#lg").value,vs=voicesFor(LANGS[L]);for(const i of[0,1]){const el=$("#v"+i),old=el.value;el.innerHTML='<option value="">Auto (best available)</option>'+vs.map(v=>`<option value="${esc(v.name)}">${esc(v.name)}</option>`).join("");if([...el.options].some(o=>o.value===old))el.value=old}
+ $("#vh").textContent=vs.length?`Best voice found: ${vs[0].name}. Voices named Natural, Neural, Enhanced or Google sound the most human.`:`No ${L} voice is installed on this device, so you will see subtitles only. Add one in your device's Text-to-speech settings, then reload.`}
+$("#lg").onchange=()=>{fillVoices();persist()};if(SYN)SYN.onvoiceschanged=fillVoices;fillVoices();
+function say1(t,who){return new Promise(res=>{const code=LANGS[$("#lg").value],u=new SpeechSynthesisUtterance(t),sel=SYN.getVoices().find(v=>v.name===$("#v"+who).value),pk=sel||voicesFor(code)[0],diff=$("#v0").value!==$("#v1").value;
+ u.lang=pk?pk.lang:code;if(pk)u.voice=pk;u.pitch=diff?1:(who?1.12:.92);u.rate=.93;u.onend=u.onerror=()=>res();SYN.speak(u);setTimeout(res,15000)})}
+async function speak(s,id){if(!SYN||!voicesFor(LANGS[$("#lg").value]).length){await sleep(Math.max(2200,s.text.length*70));return}
+ const parts=s.text.split(/(?<=[.!?؟۔…,،;:])\s+/).filter(Boolean);for(const p of parts){if(id!==run)break;await say1(p,s.who);await sleep(/[.!?؟۔…]$/.test(p)?260:120)}}
+$("#tv").onclick=async()=>{const id=++run,L=$("#lg").value;if(SYN)SYN.cancel();const t={"English":"Hello! I am your cartoon friend. Let's make a story together.","Français":"Bonjour ! Je suis ton ami de dessin animé. Créons une histoire ensemble.","Urdu اردو":"السلام علیکم! میں آپ کا کارٹون دوست ہوں۔ آئیے مل کر کہانی بنائیں۔","Arabic العربية":"مَرْحَبًا! أَنَا صَدِيقُكَ الكَرْتُونِيّ. هَيَّا نَصْنَعُ قِصَّةً مَعًا."}[L]||S.scenes[0].text;await speak({text:t,who:0},id);await speak({text:t,who:1},id)};
+/* ---------- play / record ---------- */
+async function play(voice,rec){if(rec&&estSec()>1800&&!confirm("This episode is over 30 minutes. Long videos can run out of memory, so splitting into episodes is safer. Record anyway?"))return false;const id=++run;window.speechSynthesis&&speechSynthesis.cancel();initAudio();await AC.resume();let mr=null,ch=[],WL=null;try{WL=await navigator.wakeLock.request("screen")}catch(e){}
+ if(rec){$("#rv").disabled=true;const st=cv.captureStream(30);dest.stream.getAudioTracks().forEach(t=>st.addTrack(t));const mt2=["video/mp4;codecs=avc1.42E01E,mp4a.40.2","video/mp4;codecs=avc1,mp4a.40.2","video/mp4","video/webm;codecs=vp9,opus","video/webm;codecs=vp8,opus","video/webm"].find(m=>MediaRecorder.isTypeSupported(m));MT=mt2;try{mr=new MediaRecorder(st,{mimeType:mt2,videoBitsPerSecond:({360:6e5,480:1e6,720:2e6,1080:3.5e6,1440:6e6,2160:12e6}[+$("#qs").value]||2e6)*($("#compact").checked?1:1.6),audioBitsPerSecond:$("#compact").checked?96e3:128e3})}catch(e){$("#rv").disabled=false;say("Saving video needs Chrome, Edge or Firefox.");return}mr.ondataavailable=e=>e.data.size&&ch.push(e.data);mr.start(200)}
+ if($("#mu").checked){if(IA)startImported();else startMusic($("#mo").value)}cur=-1;ST=performance.now();ET=0;speaking=false;say(rec?"Recording… please wait.":"Playing…");await sleep(2200);
+ for(let i=0;i<S.scenes.length&&id===run;i++){cur=i;pop();speaking=true;if(voice)await speak(S.scenes[i],id);else await sleep(Math.max(2200,S.scenes[i].text.length*70));speaking=false;await sleep(450)}
+ const ok=id===run;if(ok){cur=-2;ET=performance.now();await sleep(1800)}stopMusic();speaking=false;WL&&WL.release().catch(()=>{});if(ok)cur=-1;
+ if(mr){const fin=async()=>{$("#rv").disabled=false;if(!ok){say("Stopped.");return}const d=await claude.use("downloads");if(!d){say("Saving isn't available in this view.");return}try{const mp=MT.startsWith("video/mp4");await d.save({filename:(EPS.length>1?"ep"+(EI+1)+"_":"")+((S.title||"toon").replace(/[^\w\-]+/g,"_")||"toon")+(mp?".mp4":".webm"),data:new Blob(ch,{type:mp?"video/mp4":"video/webm"})});say("Saved ✓")}catch(e){say(e.code==="declined"?"Save cancelled.":"Could not save.")}};await new Promise(rs=>{mr.onstop=async()=>{await fin();rs()};mr.stop()})}else say(ok?"Finished.":"Stopped.");return ok}
+$("#pv").onclick=()=>play(true,false);$("#rv").onclick=()=>play(false,true);$("#sp").onclick=()=>{run++;window.speechSynthesis&&speechSynthesis.cancel();stopMusic();speaking=false;cur=-1;say("Stopped.")};
+/* ---------- story editor + AI ---------- */
+
+$("#ai").onclick=async()=>{const idea=$("#id").value.trim();if(!idea)return say("Write your story idea first.");const sm=await claude.use("sample");if(!sm)return say("AI is unavailable in this view. Open the page in claude.ai.");
+ const L=$("#lg").value,lang=L==="Kreol Morisien"?"Mauritian Creole (Kreol Morisien, as spoken in Mauritius; not French and not Haitian Creole)":L;$("#ai").disabled=true;say("✨ AI is writing your story…");
+ try{const r=await sm(`Write a short animated cartoon script in ${lang}. Style: ${NAT[L]||"natural, conversational and fluent like a native speaker, short sentences, punctuation for natural pauses"}. Idea: ${idea}\nReturn ONLY JSON, no markdown: {"title":string,"chars":[{"name":string,"color":"#hex"},{"name":string,"color":"#hex"}],"scenes":[{"who":0 or 1,"text":string max 16 words in ${lang},"mood":"happy|sad|surprised|neutral","action":"wave|jump|dance|none","bg":"#hex soft sky or sunset colour"}]}\nUse ${$("#sz").value} scenes, a friendly dialogue between the two characters, with a clear beginning, middle and end.`,{modelTier:"default",cache:false});
+  const j=JSON.parse(r.text.slice(r.text.indexOf("{"),r.text.lastIndexOf("}")+1));if(!j.scenes||!j.scenes.length)throw 0;
+  S={title:j.title||"My Toon",chars:[0,1].map(i=>({name:(j.chars&&j.chars[i]&&j.chars[i].name)||"Toon "+(i+1),color:(j.chars&&j.chars[i]&&j.chars[i].color)||["#3aa6ff","#ff9a3c"][i]})),scenes:j.scenes.slice(0,60).map(s=>({who:s.who?1:0,text:String(s.text||""),mood:s.mood||"neutral",action:s.action||"none",bg:s.bg||"#8fd3ff"}))};
+  recolor();list();syncChars();persist();bc();say("Story ready! Press Play with voice. You can edit any line.")}catch(e){say(e&&e.code==="not_granted"?"Permission was not granted.":"The AI answer was not usable. Please try again.")}
+ $("#ai").disabled=false};
+
+/* ---------- 3D export ---------- */
+let MT="video/webm";
+function crc(u){const t=crc.t||(crc.t=[...Array(256)].map((_,n)=>{let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;return c>>>0}));let r=-1;for(const b of u)r=t[(r^b)&255]^(r>>>8);return(r^-1)>>>0}
+function zipAll(files){const enc=new TextEncoder();let off=0;const loc=[],cen=[];files.forEach(f=>{const n=enc.encode(f.name),c=crc(f.data),L=f.data.length,h=new Uint8Array(30+n.length),v=new DataView(h.buffer);v.setUint32(0,0x04034b50,true);v.setUint16(4,20,true);v.setUint16(12,33,true);v.setUint32(14,c,true);v.setUint32(18,L,true);v.setUint32(22,L,true);v.setUint16(26,n.length,true);h.set(n,30);
+ const e=new Uint8Array(46+n.length),w=new DataView(e.buffer);w.setUint32(0,0x02014b50,true);w.setUint16(4,20,true);w.setUint16(6,20,true);w.setUint16(14,33,true);w.setUint32(16,c,true);w.setUint32(20,L,true);w.setUint32(24,L,true);w.setUint16(28,n.length,true);w.setUint32(42,off,true);e.set(n,46);loc.push(h,f.data);cen.push(e);off+=h.length+L});
+ const cs=cen.reduce((a,b)=>a+b.length,0),end=new Uint8Array(22),v=new DataView(end.buffer);v.setUint32(0,0x06054b50,true);v.setUint16(8,files.length,true);v.setUint16(10,files.length,true);v.setUint32(12,cs,true);v.setUint32(16,off,true);return new Blob([...loc,...cen,end],{type:"application/zip"})}
+const vis=o=>{for(;o;o=o.parent)if(!o.visible)return false;return true};
+function exportMeshes(f,off){const out=[];sc.updateMatrixWorld(true);sc.traverse(o=>{if(!o.isMesh||!vis(o)||!o.geometry.attributes.normal||(f&&!f(o)))return;const m=Array.isArray(o.material)?o.material[0]:o.material,g=o.geometry.clone();g.applyMatrix4(o.matrixWorld);if(off)g.translate(-off.x,0,-off.z);const n=g.attributes.position.count;out.push({p:new Float32Array(g.attributes.position.array),n:new Float32Array(g.attributes.normal.array),i:g.index?Uint32Array.from(g.index.array):Uint32Array.from({length:n},(_,i)=>i),c:m.color?m.color.getHex():0xcccccc,r:m.roughness==null?1:m.roughness,name:"part"+out.length})});return out}
+const lin=h=>[16,8,0].map(s=>{const c=(h>>s&255)/255;return c<=.04045?c/12.92:((c+.055)/1.055)**2.4}).concat(1);
+function glbScene(parts){const mats=[],mi={},chunks=[],bvs=[],acc=[],meshes=[],nodes=[];let off=0;const push=(a,t)=>{const b=new Uint8Array(a.buffer,a.byteOffset,a.byteLength);chunks.push(b);bvs.push({buffer:0,byteOffset:off,byteLength:b.length,target:t});off+=b.length;return bvs.length-1};
+ parts.forEach((q,k)=>{const key=q.c+"_"+q.r;if(!(key in mi)){mi[key]=mats.length;mats.push({name:"mat"+mats.length,pbrMetallicRoughness:{baseColorFactor:lin(q.c),metallicFactor:0,roughnessFactor:q.r},doubleSided:true})}
+  const mn=[1e9,1e9,1e9],mx=[-1e9,-1e9,-1e9];for(let i=0;i<q.p.length;i+=3)for(let j=0;j<3;j++){mn[j]=Math.min(mn[j],q.p[i+j]);mx[j]=Math.max(mx[j],q.p[i+j])}
+  const a=acc.length;acc.push({bufferView:push(q.p,34962),componentType:5126,count:q.p.length/3,type:"VEC3",min:mn,max:mx},{bufferView:push(q.n,34962),componentType:5126,count:q.n.length/3,type:"VEC3"},{bufferView:push(q.i,34963),componentType:5125,count:q.i.length,type:"SCALAR"});
+  meshes.push({name:q.name,primitives:[{attributes:{POSITION:a,NORMAL:a+1},indices:a+2,material:mi[key]}]});nodes.push({mesh:k,name:q.name})});
+ const bl=off,bin=new Uint8Array(bl);let o=0;chunks.forEach(c=>{bin.set(c,o);o+=c.length});
+ const j={asset:{version:"2.0",generator:"Zaitoon Studio"},scene:0,scenes:[{nodes:nodes.map((_,i)=>i)}],nodes,meshes,materials:mats,accessors:acc,bufferViews:bvs,buffers:[{byteLength:bl}]};
+ const jb=new TextEncoder().encode(JSON.stringify(j)),jl=jb.length+(4-jb.length%4)%4,tot=28+jl+bl,out=new Uint8Array(tot),v=new DataView(out.buffer);
+ v.setUint32(0,0x46546C67,true);v.setUint32(4,2,true);v.setUint32(8,tot,true);v.setUint32(12,jl,true);v.setUint32(16,0x4E4F534A,true);out.fill(32,20,20+jl);out.set(jb,20);v.setUint32(20+jl,bl,true);v.setUint32(24+jl,0x004E4942,true);out.set(bin,28+jl);return out}
+function glbPack(j,bin){const bl=bin.length,jb=new TextEncoder().encode(JSON.stringify(j)),jl=jb.length+(4-jb.length%4)%4,tot=28+jl+bl,out=new Uint8Array(tot),v=new DataView(out.buffer);v.setUint32(0,0x46546C67,true);v.setUint32(4,2,true);v.setUint32(8,tot,true);v.setUint32(12,jl,true);v.setUint32(16,0x4E4F534A,true);out.fill(32,20,20+jl);out.set(jb,20);v.setUint32(20+jl,bl,true);v.setUint32(24+jl,0x004E4942,true);out.set(bin,28+jl);return out}
+function glbAnim(root){const u=root.userData;u.aA.rotation.z=.2;u.aB.rotation.z=-.2;u.head.rotation.set(0,0,0);u.mouth.scale.set(.16,.1,.05);root.rotation.y=0;root.updateMatrixWorld(true);
+ const nodes=[],meshes=[],mats=[],mi={},acc=[],bvs=[],chunks=[],gm={},mm={},idx=new Map();let off=0;
+ const pushBV=a=>{const b=new Uint8Array(a.buffer,a.byteOffset,a.byteLength);chunks.push(b);bvs.push({buffer:0,byteOffset:off,byteLength:b.length});off+=b.length;return bvs.length-1};
+ const addAcc=(a,type,ct,r)=>{const o={bufferView:pushBV(a),componentType:ct,count:a.length/({SCALAR:1,VEC3:3,VEC4:4}[type]),type};if(r){o.min=r[0];o.max=r[1]}acc.push(o);return acc.length-1};
+ const geo=o=>{const g=o.geometry,k=g.uuid;if(!gm[k]){const P=new Float32Array(g.attributes.position.array),N=new Float32Array(g.attributes.normal.array),I=g.index?Uint32Array.from(g.index.array):Uint32Array.from({length:P.length/3},(_,i)=>i),mn=[1e9,1e9,1e9],mx=[-1e9,-1e9,-1e9];for(let i=0;i<P.length;i+=3)for(let j=0;j<3;j++){mn[j]=Math.min(mn[j],P[i+j]);mx[j]=Math.max(mx[j],P[i+j])}gm[k]={p:addAcc(P,"VEC3",5126,[mn,mx]),n:addAcc(N,"VEC3",5126),i:addAcc(I,"SCALAR",5125)}}return gm[k]};
+ const mesh=o=>{const m=Array.isArray(o.material)?o.material[0]:o.material,c=m.color?m.color.getHex():0xcccccc,r=m.roughness==null?1:m.roughness,mk=c+"_"+r;if(!(mk in mi)){mi[mk]=mats.length;mats.push({name:"mat"+mats.length,pbrMetallicRoughness:{baseColorFactor:lin(c),metallicFactor:0,roughnessFactor:r},doubleSided:true})}const k=o.geometry.uuid+"|"+mk;if(!(k in mm)){const a=geo(o);mm[k]=meshes.length;meshes.push({primitives:[{attributes:{POSITION:a.p,NORMAL:a.n},indices:a.i,material:mi[mk]}]})}return mm[k]};
+ const walk=o=>{const id=nodes.length,n={name:o===root?"Character":"n"+id};nodes.push(n);idx.set(o,id);if(o!==root){n.translation=o.position.toArray();n.rotation=o.quaternion.toArray();n.scale=o.scale.toArray()}if(o.isMesh&&o.geometry.attributes.normal)n.mesh=mesh(o);const k=o.children.filter(c=>c.visible);if(k.length)n.children=k.map(c=>walk(c));return id};
+ walk(root);nodes[idx.get(u.head)].name="Head";nodes[idx.get(u.aA)].name="ArmRight";nodes[idx.get(u.aB)].name="ArmLeft";nodes[idx.get(u.mouth)].name="Mouth";
+ const D=2,F=24,N=D*F+1,TP=Math.PI*2/D,CL=ToonTools.actions,qz=a=>[0,0,Math.sin(a/2),Math.cos(a/2)],qy=a=>[0,Math.sin(a/2),0,Math.cos(a/2)];
+ const pose=(c,t)=>{const P={y:.015*(1-Math.cos(TP*t)),ry:0,hz:0,aA:.2,aB:-.2,ms:.25};
+  if(c==="talk"){P.hz=.07*Math.sin(TP*2*t);P.ms=.3+Math.abs(Math.sin(TP*2*t))*1.1}
+  if(c==="wave"){P.aA=2.4+.5*Math.sin(TP*4*t);P.hz=.04*Math.sin(TP*t)}
+  if(c==="jump"){P.y=Math.abs(Math.sin(TP*t))*.5;P.aA=1.2;P.aB=-1.2}
+  if(c==="dance"){P.ry=.5*Math.sin(TP*t);P.aA=1+.8*Math.sin(TP*2*t);P.aB=-1+.8*Math.sin(TP*2*t);P.y=Math.abs(Math.sin(TP*2*t))*.12}
+  if(!["idle","talk","wave","jump","dance"].includes(c)){const v=ToonTools.pose(c,t);P.y=v.y;P.ry=v.ry;P.hz=v.hx;P.aA=v.aA;P.aB=v.aB}return P};
+ const tin=addAcc(Float32Array.from({length:N},(_,i)=>i/F),"SCALAR",5126,[[0],[D]]),ids={r:0,h:idx.get(u.head),a:idx.get(u.aA),b:idx.get(u.aB),m:idx.get(u.mouth)},anims=[];
+ CL.forEach(c=>{const ps=Array.from({length:N},(_,i)=>pose(c,i/F)),sm=[],chn=[],add=(node,path,type,fn,ln)=>{const arr=new Float32Array(N*ln);ps.forEach((p,i)=>arr.set(fn(p),i*ln));sm.push({input:tin,output:addAcc(arr,type,5126),interpolation:"LINEAR"});chn.push({sampler:sm.length-1,target:{node,path}})};
+  add(ids.r,"translation","VEC3",p=>[0,p.y,0],3);add(ids.r,"rotation","VEC4",p=>qy(p.ry),4);add(ids.h,"rotation","VEC4",p=>qz(p.hz),4);add(ids.a,"rotation","VEC4",p=>qz(p.aA),4);add(ids.b,"rotation","VEC4",p=>qz(p.aB),4);add(ids.m,"scale","VEC3",p=>[.16,p.ms*.4,.05],3);anims.push({name:c,samplers:sm,channels:chn})});
+ const bin=new Uint8Array(off);let o=0;chunks.forEach(c=>{bin.set(c,o);o+=c.length});
+ return glbPack({asset:{version:"2.0",generator:"Zaitoon Studio"},scene:0,scenes:[{nodes:[0]}],nodes,meshes,materials:mats,accessors:acc,bufferViews:bvs,buffers:[{byteLength:off}],animations:anims},bin)}
+function objFiles(parts){let o="mtllib scene.mtl\n",m="",vo=1;const seen={};parts.forEach(q=>{const mn="m"+q.c;if(!seen[mn]){seen[mn]=1;m+=`newmtl ${mn}\nKd ${[16,8,0].map(s=>((q.c>>s&255)/255).toFixed(4)).join(" ")}\n\n`}
+ o+=`o ${q.name}\nusemtl ${mn}\n`;for(let i=0;i<q.p.length;i+=3)o+=`v ${q.p[i]} ${q.p[i+1]} ${q.p[i+2]}\n`;for(let i=0;i<q.n.length;i+=3)o+=`vn ${q.n[i]} ${q.n[i+1]} ${q.n[i+2]}\n`;
+ for(let i=0;i<q.i.length;i+=3){const a=q.i[i]+vo,b=q.i[i+1]+vo,c=q.i[i+2]+vo;o+=`f ${a}//${a} ${b}//${b} ${c}//${c}\n`}vo+=q.p.length/3});return{o,m}}
+async function dlf(name,data){const d=await claude.use("downloads");if(!d)return say("Saving isn't available in this view. Open the page in claude.ai.");try{await d.save({filename:name,data});say("Saved ✓ "+name)}catch(e){say(e.code==="declined"?"Save cancelled.":"Could not save.")}}
+const inG=(o,g)=>{for(;o;o=o.parent)if(o===g)return true;return false},slug=n=>String(n).replace(/[^\w]+/g,"_").replace(/^_|_$/g,"")||"toon";
+function charFile(i){const nm="character"+(i+1)+"_"+slug(S.chars[i].name)+".glb";if(!IM[i])return{name:nm,data:glbAnim(CH[i])};const g=IM[i],r=g.rotation.y;g.rotation.y=0;sc.updateMatrixWorld(true);const p=new THREE.Vector3();g.getWorldPosition(p);const parts=exportMeshes(o=>inG(o,g),p);g.rotation.y=r;return{name:nm,data:glbScene(parts)}}
+const CRM="Animated .glb characters: clips idle, talk, wave, jump, dance (2 s loops, 24 fps). Built-in characters are node-animated (no skeleton), so they work in Unity, Unreal, Godot, Blender, three.js, Babylon.js and AR viewers. Imported characters are exported as a static pose without textures.\n";
+$("#x3").onclick=async()=>{say("Building 3D files…");sc.updateMatrixWorld(true);const en=new TextEncoder(),all=exportMeshes(),ob=objFiles(all),G=[0,1].map(i=>IM[i]||CH[i]),set=exportMeshes(o=>!G.some(g=>inG(o,g))),files=[{name:"scene.glb",data:glbScene(all)},{name:"scene.obj",data:en.encode(ob.o)},{name:"scene.mtl",data:en.encode(ob.m)},charFile(0),charFile(1)];
+ if(set.length)files.push({name:"setting.glb",data:glbScene(set)});
+ files.push({name:"episodes.json",data:en.encode(JSON.stringify(EPS,null,2))},...EPS.map((e,k)=>({name:"subtitles_ep"+(k+1)+".srt",data:en.encode(srt(e))})),{name:"script.txt",data:en.encode(EPS.map((e,k)=>"Episode "+(k+1)+": "+e.title+"\n"+e.scenes.map(s=>e.chars[s.who].name+": "+s.text).join("\n")).join("\n\n"))},
+ {name:"README.txt",data:en.encode("scene.glb: the whole scene (static).\ncharacterN_name.glb: one model per character, origin at the feet.\n"+CRM+"setting.glb: ground and props.\nscene.obj + scene.mtl: same scene for Blender, Maya, 3ds Max.\nepisodes.json: your whole series.\nsubtitles_epN.srt: subtitles per episode (timings are estimates).\nUnzip this file first.\n")});
+ await dlf("toon-3d-pack.zip",zipAll(files));say("Saved. Unzip it for animated character .glb files, scene and setting models, .obj, subtitles and scripts.")};
+$("#xg").onclick=async()=>{say("Building animated characters…");sc.updateMatrixWorld(true);await dlf("toon-characters-animated.zip",zipAll([charFile(0),charFile(1),{name:"README.txt",data:new TextEncoder().encode(CRM+"Unzip this file first.\n")}]));say("Saved. Unzip it for the animated .glb characters.")};
+/* ---------- collaboration ---------- */
+const HEX=c=>/^#[0-9a-f]{3,8}$/i.test(c)?c:null;
+function clean(j){if(!j||!Array.isArray(j.scenes)||!j.scenes.length)return null;return{title:String(j.title||"My Toon").slice(0,60),chars:[0,1].map(i=>({...((j.chars&&j.chars[i])||{}),name:String((j.chars&&j.chars[i]&&j.chars[i].name)||"Toon "+(i+1)).slice(0,20),color:HEX(j.chars&&j.chars[i]&&j.chars[i].color)||["#3aa6ff","#ff9a3c"][i],style:["bird","cat","bear","robot","muslim"].includes(j.chars&&j.chars[i]&&j.chars[i].style)?j.chars[i].style:"bird"})),scenes:j.scenes.slice(0,200).map(s=>({who:s.who?1:0,text:String(s.text||"").slice(0,300),mood:["happy","sad","surprised","neutral"].includes(s.mood)?s.mood:"neutral",action:[...ToonTools.actions,"none"].includes(s.action)?s.action:"none",bg:HEX(s.bg)||"#8fd3ff"}))}}
+function use(j){const c=clean(j);if(!c)return false;S=c;recolor();list();syncChars();persist();return true}
+let RM=null,CODE="",bt;
+function bc(){if(!RM||!CODE)return;clearTimeout(bt);bt=setTimeout(()=>RM.emit("story",{code:CODE,S}).catch(()=>{}),400)}
+$("#jr").onclick=async()=>{const c=$("#rc").value.trim().toLowerCase();if(!c)return say("Type a room code, then share it with your team.");
+ if(!RM){RM=await claude.use("room");if(!RM)return say("Live rooms work when this page is open in claude.ai and shared with your team.");
+  RM.on("story",m=>{if(!m.isMe&&m.data&&m.data.code===CODE&&use(m.data.S))say("A teammate updated the story.")});
+  RM.on("play",m=>{if(!m.isMe&&m.data&&m.data.code===CODE){use(m.data.S);say("A teammate pressed Play.");play(true,false)}});
+  RM.onPeers(ch=>{$("#ph").textContent="👥 In room “"+CODE+"”: "+ch.peers.length+(ch.peers.length===1?" person (just you)":" people")})}
+ CODE=c;try{await RM.presence({code:c})}catch(e){}say("Joined room “"+c+"”. Story edits now sync live.")};
+$("#pa").onclick=()=>{if(RM&&CODE)RM.emit("play",{code:CODE,S}).catch(()=>{});play(true,false)};
+$("#sv").onclick=async()=>{const d=await claude.use("db");if(!d)return say("The team library needs you to be signed in on claude.ai.");try{await d.collection("stories").doc("s"+Date.now().toString(36)).set({title:S.title,json:JSON.stringify(S),at:Date.now()});say("Saved to the team library ✓")}catch(e){say("Could not save: "+(e.message||e.code))}};
+$("#ld").onclick=async()=>{const d=await claude.use("db");if(!d)return say("The team library needs you to be signed in on claude.ai.");try{const q=await d.collection("stories").get(),box=$("#lb");box.innerHTML="";const rows=q.docs.map(x=>x.data()).filter(Boolean).sort((a,b)=>(b.at||0)-(a.at||0)).slice(0,12);if(!rows.length)return say("The library is empty. Save a story first.");
+ rows.forEach(r=>{const b=document.createElement("button");b.className="alt";b.style.margin="0 6px 6px 0";b.textContent="📂 "+String(r.title||"Story").slice(0,40);b.onclick=()=>{let ok=false;try{ok=use(JSON.parse(r.json))}catch(e){}say(ok?"Story loaded.":"That story could not be opened.");ok&&bc()};box.append(b)});say("Pick a story to open.")}catch(e){say("Could not open the library: "+(e.message||e.code))}};
+
+/* ---------- editor, import, polish ---------- */
+const OPT=(a,v)=>a.map(x=>`<option${x===v?" selected":""}>${x}</option>`).join("");
+function list(){const w=S.chars.map((c,i)=>`<option value="${i}">${esc(c.name)}</option>`);$("#sl").innerHTML=S.scenes.map((s,i)=>`<div class="sc"><select data-i="${i}" data-k="who" aria-label="Speaker">${w.map((o,k)=>k===s.who?o.replace("<option","<option selected"):o).join("")}</select><select data-i="${i}" data-k="mood" aria-label="Mood">${OPT(["happy","sad","surprised","neutral"],s.mood)}</select><select data-i="${i}" data-k="action" aria-label="Action">${OPT(["none",...ToonTools.actions],s.action)}</select><button class="alt x" data-del="${i}" aria-label="Delete line">✕</button><input type="text" data-i="${i}" data-k="text" value="${esc(s.text)}" aria-label="Dialogue"></div>`).join("")}
+$("#sl").addEventListener("input",e=>{const t=e.target,i=t.dataset.i;if(i==null||!S.scenes[i])return;const k=t.dataset.k;S.scenes[i][k]=k==="who"?+t.value:t.value;persist();bc()});
+$("#sl").addEventListener("click",e=>{const d=e.target.dataset.del;if(d==null)return;if(S.scenes.length<2)return say("Keep at least one line.");S.scenes.splice(+d,1);list();persist();bc()});
+$("#al").onclick=()=>{if(S.scenes.length>=200)return say("Maximum 200 lines per episode.");const l=S.scenes[S.scenes.length-1];S.scenes.push({who:l?1-l.who:0,text:"",mood:"happy",action:"none",bg:l?l.bg:"#8fd3ff"});list();persist();bc();const x=$("#sl").querySelectorAll("input");x[x.length-1].focus()};
+$("#nw").onclick=()=>{if(confirm("Replace your story with the demo?")){use(DEMO);bc();say("Demo restored.")}};
+function syncChars(){for(const i of[0,1]){$("#cs"+i).value=S.chars[i].style||"bird";$("#cn"+i).value=S.chars[i].name;$("#cc"+i).value=/^#[0-9a-f]{6}$/i.test(S.chars[i].color)?S.chars[i].color:["#3aa6ff","#ff9a3c"][i]}}
+for(const i of[0,1]){$("#cs"+i).onchange=e=>{S.chars[i].style=e.target.value;if(e.target.value!=="muslim"&&IM[i]){sc.remove(IM[i]);IM[i]=MX[i]=null;CH[i].visible=true}recolor();persist();bc()};$("#cn"+i).oninput=e=>{S.chars[i].name=e.target.value.slice(0,20)||"Toon";list();persist();bc()};$("#cc"+i).oninput=e=>{S.chars[i].color=e.target.value;recolor();list();persist();bc()}}
+function applyFmt(){V=$("#fm").value==="v";const q=+$("#qs").value||1080,L=Math.round(q*16/9),w=V?q:L,h=V?L:q;LW=V?540:960;LH=V?960:540;R.setSize(w,h);cv.width=w;cv.height=h;cx.setTransform(w/LW,0,0,w/LW,0,0);cam.aspect=w/h;cam.fov=V?50:40;cam.updateProjectionMatrix();const px=V?.85:1.2;[0,1].forEach(i=>{const x=(i?1:-1)*px;CH[i].position.x=x;if(IM[i])IM[i].position.x=x});PL.forEach(p=>p.position.x=p.userData.x0*(V?.5:1))}
+$("#qs").onchange=$("#fm").onchange=()=>{applyFmt();persist();say($("#qs").value+"p ready. Higher resolutions need a faster device.")};
+$("#mv").oninput=()=>{if(master)master.gain.value=$("#mv").value/100*.5};$("#mo").onchange=persist;
+function srt(E=S){const f=n=>{const ms=Math.round(n*1e3),p=(x,l=2)=>String(x).padStart(l,"0");return`${p(ms/36e5|0)}:${p(ms/6e4%60|0)}:${p(ms/1e3%60|0)},${p(ms%1e3,3)}`};let t=2.2,o="";E.scenes.forEach((s,i)=>{const d=Math.max(2.2,s.text.length*.07);o+=`${i+1}\n${f(t)} --> ${f(t+d)}\n${E.chars[s.who].name}: ${s.text}\n\n`;t+=d+.45});return o}
+$("#sn").onclick=()=>cv.toBlob(b=>dlf("toon-snapshot.png",b),"image/png");
+/* imported audio */
+function startImported(){stopMusic();if(!IA)return;IS=AC.createBufferSource();IS.buffer=IA.buf;IS.loop=true;IS.connect(master);IS.start()}
+$("#fa").onchange=async e=>{const f=e.target.files[0];e.target.value="";if(!f)return;if(f.size>25e6)return say("Audio is too large (max 25 MB).");initAudio();try{IA={buf:await AC.decodeAudioData(await f.arrayBuffer())};say("Audio ready: "+f.name+". It will play under your story and be saved in the video.")}catch(x){say("Could not read that audio. Try MP3, WAV or M4A.")}};
+$("#xa").onclick=()=>{IA=null;stopMusic();say("Imported audio removed. Built-in music is back.")};
+/* imported 3D characters */
+function place(i,g){const r=g.scene,b=new THREE.Box3().setFromObject(r),z=new THREE.Vector3();b.getSize(z);r.scale.setScalar(1.9/Math.max(z.y,.001));b.setFromObject(r);const c=new THREE.Vector3();b.getCenter(c);r.position.set(-c.x,-b.min.y,-c.z);
+ const w=new THREE.Group();w.add(r);w.position.x=(i?1:-1)*(V?.85:1.2);if(IM[i])sc.remove(IM[i]);sc.add(w);IM[i]=w;CH[i].visible=false;MX[i]=g.animations&&g.animations.length?{m:new THREE.AnimationMixer(r),clips:g.animations,cur:null,act:null}:null}
+for(const i of[0,1])$("#g"+i).onchange=async e=>{const f=e.target.files[0];e.target.value="";if(!f)return;if(f.size>30e6)return say("Model is too large (max 30 MB).");if(!THREE.GLTFLoader)return say("The 3D importer could not load. Check your connection and reload.");say("Loading "+f.name+"…");
+ try{new THREE.GLTFLoader().parse(await f.arrayBuffer(),"",g=>{place(i,g);say("Character "+(i+1)+" ready: "+f.name+(g.animations.length?" ("+g.animations.length+" animations)":" (no animations)"))},()=>say("Could not read that .glb file."))}catch(x){say("Could not read that file.")}};
+$("#rs3").onclick=()=>{for(const i of[0,1]){if(IM[i])sc.remove(IM[i]);IM[i]=MX[i]=null;CH[i].visible=true}say("Built-in characters restored.")};
+function impAnim(i,sp,a,t,dt,y,ry){const w=IM[i];if(!w)return;const x=MX[i];let hasJ=false;
+ if(x&&!w.userData.library){hasJ=x.clips.some(k=>/jump/i.test(k.name));const want=sp&&a==="wave"?/wave|hello/i:sp&&a==="jump"?/jump/i:sp&&a==="dance"?/dance/i:sp&&speaking?/talk|speak/i:/idle|stand|breath/i,c=x.clips.find(k=>want.test(k.name))||x.clips.find(k=>/idle|stand|breath/i.test(k.name))||x.clips[0];
+  if(c!==x.cur){const ac=x.m.clipAction(c).reset().fadeIn(.25).play();x.act&&x.act.fadeOut(.25);x.act=ac;x.cur=c}x.m.update(dt)}
+ w.position.y=!hasJ&&sp&&a==="jump"?y:0;w.rotation.y=ry*.6;w.scale.y=1+(sp&&speaking?Math.abs(Math.sin(t*13))*.025:0)}
+list();
+
+/* ---------- settings, filters, backdrop clip ---------- */
+$("#wd").onchange=()=>{WN=$("#wd").value;applyWorld();persist()};
+const FXS={None:"","Black & White":"grayscale(1)",Sepia:"sepia(.9)",Vintage:"sepia(.5) contrast(1.1) saturate(1.3)",Cool:"hue-rotate(180deg)",Warm:"sepia(.3) saturate(1.4) hue-rotate(-15deg)",Dreamy:"blur(1.5px) brightness(1.1)"};
+$("#ex").innerHTML=Object.keys(FXS).map(k=>`<option>${k}</option>`).join("");
+function upFS(){FS=`brightness(${$("#eb").value}%) contrast(${$("#ec").value}%) saturate(${$("#es").value}%) ${FXS[$("#ex").value]}`}
+["eb","ec","es","ex"].forEach(i=>$("#"+i).oninput=upFS);upFS();
+function bl(){$("#bsv").textContent=(+$("#bs").value).toFixed(1);$("#bev").textContent=(+$("#be").value).toFixed(1)}
+$("#fv").onchange=e=>{const f=e.target.files[0];e.target.value="";if(!f)return;if(f.size>150e6)return say("Clip is too large (max 150 MB).");BK.src=URL.createObjectURL(f);BK.onloadedmetadata=()=>{const d=BK.duration||10;$("#bs").max=$("#be").max=d;$("#bs").value=0;$("#be").value=d;bl();BKon=true;applyWorld();BK.currentTime=0;BK.play();say("Background clip added. Trim it with the sliders.")}};
+$("#bs").oninput=$("#be").oninput=()=>{bl();if(BKon)BK.currentTime=+$("#bs").value};
+$("#xv").onclick=()=>{BKon=false;BK.pause();BK.removeAttribute("src");BK.load();applyWorld();say("Background clip removed.")};
+
+/* ---------- series & long videos ---------- */
+let EPS=[S],EI=0;
+function estSec(E=S){return 2.2+E.scenes.reduce((a,s)=>a+Math.max(2.2,s.text.length*.07)+.45,0)+1.8}
+const mmss=t=>Math.floor(t/60)+":"+String(Math.round(t%60)).padStart(2,"0");
+function upd(){EPS[EI]=S;$("#ep").innerHTML=EPS.map((e,i)=>`<option value="${i}"${i===EI?" selected":""}>Ep ${i+1}: ${esc(e.title)}</option>`).join("");if(document.activeElement!==$("#et"))$("#et").value=S.title;
+ $("#len").textContent=`This episode ≈ ${mmss(estSec())}, ${S.scenes.length} lines`+(EPS.length>1?`. Whole series ≈ ${mmss(EPS.reduce((a,e)=>a+estSec(e),0))} (${EPS.length} episodes)`:"")+". Keep each episode under about 30 minutes."}
+function go(k){EPS[EI]=S;EI=k;S=EPS[k];recolor();list();syncChars();persist()}
+$("#ep").onchange=()=>go(+$("#ep").value);
+$("#et").oninput=e=>{S.title=e.target.value.slice(0,60);persist()};
+$("#ne").onclick=()=>{if(EPS.length>=30)return say("Maximum 30 episodes.");const n=JSON.parse(JSON.stringify(S));n.title="Episode "+(EPS.length+1);n.scenes=[{who:0,text:"",mood:"happy",action:"wave",bg:S.scenes[0].bg}];EPS[EI]=S;EPS.push(n);go(EPS.length-1);say("New episode added. Write or generate its lines.")};
+$("#de").onclick=()=>{if(EPS.length<2)return say("A series needs at least one episode.");if(!confirm("Delete this episode?"))return;EPS.splice(EI,1);EI=Math.min(EI,EPS.length-1);S=EPS[EI];recolor();list();syncChars();persist()};
+async function aiJ(p){const sm=await claude.use("sample");if(!sm){say("AI is unavailable in this view. Open the page in claude.ai.");return null}const r=await sm(p,{modelTier:"default",cache:false});return JSON.parse(r.text.slice(r.text.indexOf("{"),r.text.lastIndexOf("}")+1))}
+function lgi(){const L=$("#lg").value;return{lang:L==="Kreol Morisien"?"Mauritian Creole (Kreol Morisien, as spoken in Mauritius; not French and not Haitian Creole)":L,sty:NAT[L]||"natural, conversational and fluent like a native speaker, short sentences, punctuation for natural pauses"}}
+const SCJ='"scenes":[{"who":0 or 1,"text":string max 16 words,"mood":"happy|sad|surprised|neutral","action":"wave|jump|dance|none","bg":"#hex soft sky colour"}]';
+async function aiRun(btn,fn){btn.disabled=true;say("✨ AI is writing…");try{await fn()}catch(e){say(e&&e.code==="not_granted"?"Permission was not granted.":"The AI answer was not usable. Please try again.")}btn.disabled=false}
+$("#am").onclick=()=>aiRun($("#am"),async()=>{if(S.scenes.length>=190)return say("This episode is already very long. Start a new episode.");const{lang,sty}=lgi(),tail=S.scenes.slice(-6).map(s=>S.chars[s.who].name+": "+s.text).join("\n"),j=await aiJ(`Continue this animated cartoon in ${lang}. Style: ${sty}. Characters: ${S.chars.map((c,i)=>i+"="+c.name).join(", ")}. Last lines so far:\n${tail}\nWrite 10 more lines that continue naturally. Return ONLY JSON: {${SCJ}}`);if(!j)return;const c=clean({title:S.title,chars:S.chars,scenes:j.scenes});if(!c)throw 0;S.scenes.push(...c.scenes);list();persist();bc();say("Added "+c.scenes.length+" lines.")});
+$("#aie").onclick=()=>aiRun($("#aie"),async()=>{if(EPS.length>=30)return say("Maximum 30 episodes.");const{lang,sty}=lgi(),prev=S.scenes.slice(-8).map(s=>S.chars[s.who].name+": "+s.text).join("\n"),j=await aiJ(`Write episode ${EPS.length+1} of an animated cartoon series in ${lang}. Style: ${sty}. Same characters: ${S.chars.map((c,i)=>i+"="+c.name).join(", ")}. Previous episode "${S.title}" ended with:\n${prev}\nStart a new adventure that follows on. Use ${$("#sz").value} lines. Return ONLY JSON: {"title":string,${SCJ}}`);if(!j)return;const c=clean({title:j.title||"Episode "+(EPS.length+1),chars:S.chars,scenes:j.scenes});if(!c)throw 0;EPS[EI]=S;EPS.push(c);go(EPS.length-1);say("Episode "+EPS.length+" written. Press Play to preview.")});
+$("#rall").onclick=async()=>{if(!confirm("Record and save all "+EPS.length+" episodes one after another? Keep this page open and your screen on."))return;const st=EI;for(let k=0;k<EPS.length;k++){go(k);say("Recording episode "+(k+1)+" of "+EPS.length+"…");if(!await play(false,true))break}go(st)};
+upd();
+/* autosave */
+function persist(){EPS[EI]=S;upd();try{localStorage.setItem("toon.v1",JSON.stringify({S,eps:EPS,ei:EI,lg:$("#lg").value,mo:$("#mo").value,fm:$("#fm").value,qs:$("#qs").value,wd:WN}))}catch(e){}}
+syncChars();
+try{const r=JSON.parse(localStorage.getItem("toon.v1")||"null");if(r&&use(r.S)){if(Array.isArray(r.eps)&&r.eps.length){const e=r.eps.map(clean).filter(Boolean);if(e.length){EPS=e;EI=Math.min(Math.max(+r.ei||0,0),e.length-1);S=EPS[EI];recolor();list();syncChars();persist()}}if(LANGS[r.lg])$("#lg").value=r.lg;if(MOODS[r.mo])$("#mo").value=r.mo;if(r.fm==="v"||r.fm==="h")$("#fm").value=r.fm;if(["360","480","720","1080","1440","2160"].includes(r.qs))$("#qs").value=r.qs;applyFmt();if(WORLDS[r.wd]){WN=r.wd;$("#wd").value=r.wd}applyWorld();fillVoices();say("Welcome back. Your last story was restored.")}}catch(e){}
+applyFmt();if(window.speechSynthesis)speechSynthesis.getVoices();
+</script>
+<script>
+/* ---------- 3D character workshop: precise placement, lighting, animation preview ---------- */
+(()=>{const WK=JSON.parse(localStorage.getItem("toon-workshop")||"null")||{c:[{x:0,y:0,z:0,r:0,s:1},{x:0,y:0,z:0,r:0,s:1}],l:{a:.85,d:.7,r:27,h:4,c:"#ffffff",ac:"#ffffff"}};
+ const PV=[null,null],amb=sc.children.find(o=>o.isAmbientLight),save=()=>localStorage.setItem("toon-workshop",JSON.stringify(WK));
+ const sel=()=>+$("#wkc").value,F={x:"wkx",y:"wky",z:"wkz",r:"wkr",s:"wks"};
+ function show(){const c=WK.c[sel()];for(const k in F){$("#"+F[k]).value=c[k];$("#"+F[k]+"v").textContent=(+c[k]).toFixed(k==="r"?0:2)}
+  const L=WK.l;[["wla","a"],["wld","d"],["wlr","r"],["wlh","h"]].forEach(([id,k])=>{$("#"+id).value=L[k];$("#"+id+"v").textContent=L[k]});$("#wlc").value=L.c;$("#wlac").value=L.ac;light()}
+ function light(){const L=WK.l,a=L.r*Math.PI/180;if(amb){amb.intensity=+L.a;amb.color.set(L.ac)}dl.intensity=+L.d;dl.color.set(L.c);dl.position.set(Math.sin(a)*4.5,+L.h,Math.cos(a)*4.5)}
+ for(const k in F)$("#"+F[k]).oninput=e=>{WK.c[sel()][k]=+e.target.value;$("#"+F[k]+"v").textContent=(+e.target.value).toFixed(k==="r"?0:2);save()};
+ [["wla","a"],["wld","d"],["wlr","r"],["wlh","h"]].forEach(([id,k])=>$("#"+id).oninput=e=>{WK.l[k]=+e.target.value;$("#"+id+"v").textContent=e.target.value;light();save()});
+ $("#wlc").oninput=e=>{WK.l.c=e.target.value;light();save()};$("#wlac").oninput=e=>{WK.l.ac=e.target.value;light();save()};
+ $("#wkc").onchange=show;$("#wkreset").onclick=()=>{WK.c[sel()]={x:0,y:0,z:0,r:0,s:1};show();save();say("Position reset.")};
+ document.querySelectorAll(".wka").forEach(b=>b.onclick=()=>{const i=sel();PV[i]=b.dataset.a||null;say(PV[i]?"Previewing "+PV[i]+" on character "+(i+1)+".":"Animation preview off.")});
+ const RE={idle:/idle|stand|breath/i,talk:/talk|speak/i,wave:/wave|hello|interact-right/i,jump:/jump/i,dance:/dance/i,greet:/interact-right|wave/i,nod:/emote-yes|nod/i,walk:/walk/i,celebrate:/holding-both|celebrate/i};
+ const orig=R.render.bind(R);let last=performance.now();
+ R.render=(s,c)=>{const t=performance.now()/1000,dt=Math.min(.1,t-last/1000);last=performance.now();
+  for(const i of[0,1]){const o=WK.c[i],g=IM[i]||CH[i],a=PV[i];if(!g)continue;
+   if(a&&!IM[i]){const u=g.userData;let y=Math.abs(Math.sin(t*2+i))*.03,aA=.2,aB=-.2,ms=.25,ry=i?-.35:.35;
+    if(a==="talk"){ms=.3+Math.abs(Math.sin(t*13))*1.1;u.head.rotation.z=Math.sin(t*5)*.07}
+    if(a==="wave")aA=2.4+Math.sin(t*10)*.5;if(a==="jump"){y=Math.abs(Math.sin(t*6))*.5;aA=1.2;aB=-1.2}
+    if(a==="dance"){ry+=Math.sin(t*4)*.5;aA=1+Math.sin(t*8)*.8;aB=-1+Math.sin(t*8)*.8;y=Math.abs(Math.sin(t*8))*.12}
+    const pose=ToonTools.pose(a,t);y=pose.y;aA=pose.aA;aB=pose.aB;u.head.rotation.x=pose.hx;g.position.y=y;g.rotation.y=ry+pose.ry;u.aA.rotation.z=aA;u.aB.rotation.z=aB;u.mouth.scale.y=ms*.4}
+   if((a||S.chars[i].animation)&&IM[i]&&MX[i]){const selected=(cur>=0&&S.scenes[cur]?.who===i?S.scenes[cur].action:null)||a||S.chars[i].animation;const x=MX[i],k=x.clips.find(q=>(RE[selected]||RE.idle).test(q.name))||x.clips[0];if(k!==x.cur){const ac=x.m.clipAction(k).reset().fadeIn(.25).play();x.act&&x.act.fadeOut(.25);x.act=ac;x.cur=k}x.m.update(dt)}
+   if(IM[i]?.userData.library){const p=ToonTools.pose(a||S.chars[i].animation||"idle",t);if((a||S.chars[i].animation)!=="jump")g.position.y=p.y;g.rotation.y+=p.ry}
+   const bx=(i?1:-1)*(V?.85:1.2);g.position.x=bx+o.x;g.position.y+=o.y;g.position.z=o.z;g.rotation.y+=o.r*Math.PI/180;g.scale.x=g.scale.z=o.s;g.scale.y=(IM[i]?1+(speaking?Math.abs(Math.sin(t*13))*.025:0):1)*o.s}
+  if(SHOT){const T={wide:[0,6.2,0],two:[0,4.3,0],hero:[-1.1,3.1,-1],friend:[1.1,3.1,1]}[SHOT];if(T){cam.position.x+=(T[0]-cam.position.x)*.12;cam.position.z+=(T[1]+(V?1.5:0)-cam.position.z)*.12;cam.lookAt(T[2]*(V?.85:1.2)*.7,1.1,0)}}
+  orig(s,c)};
+ let SHOT=null;window.toonShot=(k)=>{SHOT=k||null};
+ window.toonPreview=(i,a)=>{PV[i]=a||null};
+ show()})();
+</script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/exporters/GLTFExporter.js"></script>
+<script src="/character-library.js"></script>
+<script src="/image-workshop.js"></script>
+<script>
+/* Features that only exist inside claude.ai are switched off elsewhere, with a reason. */
+if(window.claude&&window.claude.__fallback){["ai","am","aie","jr","pa","sv","ld"].forEach(id=>{const b=document.getElementById(id);if(b){b.disabled=true;b.title="Not available here: this needs the claude.ai platform."}});
+ const n=document.getElementById("ph");if(n)n.textContent="Live rooms and the team library are not available outside claude.ai. AI story writing is also off here: write your story with any free chat AI and paste the lines in."}
+</script>
+</body></html>
