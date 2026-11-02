@@ -23,20 +23,28 @@ jobs:
           for f in $A/vendor/*.js; do test $(wc -c < $f) -gt 1000 || { echo "Bad download: $f"; exit 1; }; done
           sed -i -E 's#https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js#/vendor/three.min.js#; s#https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/[a-z]+/#/vendor/#g' $A/index.html
           if grep -E 'src="https?://' $A/index.html; then echo "External script still referenced"; exit 1; fi
+      - name: Smoke test the app page in a real browser
+        continue-on-error: true
+        run: |
+          npm install --no-save --no-audit --no-fund playwright@1.49.0
+          npx playwright install --with-deps chromium
+          node tools/smoke.mjs
       - run: gradle assembleDebug
       - name: Check the APK contains the bundled engine
         run: unzip -l app/build/outputs/apk/debug/app-debug.apk | grep -E "vendor/(three.min|GLTFLoader|OrbitControls|SkeletonUtils|GLTFExporter).js" | wc -l | grep -qx 5
       - uses: actions/upload-artifact@v4
         with: { name: ZaitoonStudio-APK, path: app/build/outputs/apk/debug/app-debug.apk }
       - name: Save the APK to the apk branch (so it can be downloaded from the repo)
+        if: always()
         run: |
           set -e
           D=$(mktemp -d)
-          cp app/build/outputs/apk/debug/app-debug.apk $D/ZaitoonStudio-debug.apk
+          cp app/build/outputs/apk/debug/app-debug.apk $D/ZaitoonStudio-debug.apk 2>/dev/null || echo 'no apk (build failed)'
+          cp smoke-report.txt $D/ 2>/dev/null || true
           cd $D
           git init -q -b apk
           git config user.name "github-actions"
           git config user.email "actions@github.com"
-          git add ZaitoonStudio-debug.apk
+          git add -A
           git commit -q -m "APK from run ${{ github.run_id }}"
           git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" apk

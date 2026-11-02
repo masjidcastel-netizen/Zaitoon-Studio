@@ -1,6 +1,22 @@
 <!DOCTYPE html>
 <html lang="en"><head>
 <script>
+/* Android voice bridge: the phone's own text-to-speech engine replaces the browser one. */
+(()=>{if(!(window.Android&&Android.ttsSpeak))return;
+let voices=[],pend={},n=0,handler=null;
+const load=()=>{try{voices=JSON.parse(Android.ttsVoices()).map(v=>({name:v.name,voiceURI:v.name,lang:v.lang,localService:!!v.local,default:false}))}catch(e){voices=[]}};
+const done=id=>{const u=pend[id];if(u){delete pend[id];try{u.onend&&u.onend({})}catch(e){}}};
+const synth={speaking:false,pending:false,paused:false,getVoices:()=>voices,
+ speak(u){const id="u"+(++n);pend[id]=u;Android.ttsSpeak(id,String(u.text),u.voice?u.voice.name:"",u.lang||"",+u.pitch||1,+u.rate||1)},
+ cancel(){try{Android.ttsStop()}catch(e){}Object.keys(pend).forEach(done)},pause(){},resume(){},addEventListener(){},removeEventListener(){}};
+Object.defineProperty(synth,"onvoiceschanged",{get:()=>handler,set:f=>{handler=f;if(voices.length&&f)setTimeout(f,0)}});
+window.__ttsEnd=done;window.__ttsReady=()=>{load();if(handler)handler()};
+class U{constructor(t){this.text=t;this.lang="";this.voice=null;this.pitch=1;this.rate=1;this.volume=1;this.onend=null;this.onerror=null}}
+try{Object.defineProperty(window,"speechSynthesis",{value:synth,configurable:true})}catch(e){}
+window.SpeechSynthesisUtterance=U;load();
+})();
+</script>
+<script>
 window.claude=window.claude||{__fallback:true,use:async n=>n==="downloads"?{save:async({filename,data})=>{const b=data instanceof Blob?data:new Blob([data]);
 if(window.Android){Android.begin(filename,b.type||"application/octet-stream");const C=393216;for(let o=0;o<b.size;o+=C){const u=new Uint8Array(await b.slice(o,o+C).arrayBuffer());let t="";for(let i=0;i<u.length;i+=32768)t+=String.fromCharCode.apply(null,u.subarray(i,i+32768));Android.chunk(btoa(t))}Android.end()}
 else{const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=filename;a.click()}}}:null};
@@ -366,5 +382,27 @@ applyFmt();if(window.speechSynthesis)speechSynthesis.getVoices();
 /* Features that only exist inside claude.ai are switched off elsewhere, with a reason. */
 if(window.claude&&window.claude.__fallback){["ai","am","aie","jr","pa","sv","ld"].forEach(id=>{const b=document.getElementById(id);if(b){b.disabled=true;b.title="Not available here: this needs the claude.ai platform."}});
  const n=document.getElementById("ph");if(n)n.textContent="Live rooms and the team library are not available outside claude.ai. AI story writing is also off here: write your story with any free chat AI and paste the lines in."}
+</script>
+<script>
+/* Free AI story: write the prompt, paste the answer from any free chat AI. */
+(()=>{const host=$("#ai").parentElement,box=document.createElement("div");box.className="lib-item";box.style.margin="8px 0";
+box.innerHTML='<strong>Free AI story (works everywhere)</strong><span class="s">1) Press “Get prompt” and copy it into any free chat AI (ChatGPT, Gemini, Claude). 2) Paste the answer below. 3) Press “Use story”.</span><button id="gp" class="alt">📝 Get prompt</button><textarea id="pp" placeholder="The prompt appears here. Copy it into a free AI."></textarea><textarea id="ps" placeholder="Paste the AI answer here: JSON, or lines like  Dodo: Bonzour!"></textarea><button id="us">✅ Use story</button>';
+host.after(box);
+$("#gp").onclick=()=>{const idea=$("#id").value.trim()||"Two friends learn about sharing",{lang,sty}=lgi();
+ $("#pp").value=`Write a short animated cartoon script in ${lang}. Style: ${sty}. Idea: ${idea}\nReturn ONLY JSON, no markdown: {"title":string,"chars":[{"name":string,"color":"#hex"},{"name":string,"color":"#hex"}],"scenes":[{"who":0 or 1,"text":string max 16 words,"mood":"happy|sad|surprised|neutral","action":"wave|jump|dance|none","bg":"#hex"}]}\nUse ${$("#sz").value} scenes, a friendly dialogue between the two characters, with a clear beginning, middle and end. Never invent Quran verses or Hadith.`;
+ $("#pp").focus();$("#pp").select();say("Copy the prompt into a free AI, then paste its answer below.")};
+function parseStory(t){t=t.trim();const a=t.indexOf("{"),b=t.lastIndexOf("}");
+ if(a>=0&&b>a){try{const j=JSON.parse(t.slice(a,b+1));if(j&&Array.isArray(j.scenes)&&j.scenes.length)return j}catch(e){}}
+ const names=[],scenes=[];
+ for(const raw of t.split(/\n+/)){const m=raw.match(/^[\s*_#\-\d.)]*([^:：\n]{1,20})[:：]\s*(.+)$/);if(!m)continue;
+  const nm=m[1].replace(/[*_]/g,"").trim(),tx=m[2].replace(/[*_]/g,"").trim();if(!nm||!tx)continue;
+  let i=names.indexOf(nm);if(i<0){if(names.length<2){names.push(nm);i=names.length-1}else i=1}
+  scenes.push({who:i,text:tx.slice(0,300),mood:"happy",action:"none",bg:"#8fd3ff"})}
+ if(!scenes.length)return null;
+ while(names.length<2)names.push(names.length?"Friend":"Narrator");
+ return{title:"My story",chars:names.map((name,i)=>({name,color:["#3aa6ff","#ff9a3c"][i]})),scenes}}
+$("#us").onclick=()=>{const j=parseStory($("#ps").value||"");if(!j)return say("Nothing usable found. Paste the AI answer (JSON, or lines like Name: text).");
+ if(use(j)){bc();say("Story ready: "+S.scenes.length+" lines. Press Play with voice.")}else say("Could not use that story.")};
+})();
 </script>
 </body></html>
