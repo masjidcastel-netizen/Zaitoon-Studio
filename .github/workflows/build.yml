@@ -1,5 +1,7 @@
 name: Build APK
 on: [workflow_dispatch, push]
+permissions:
+  contents: write
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -26,3 +28,15 @@ jobs:
         run: unzip -l app/build/outputs/apk/debug/app-debug.apk | grep -E "vendor/(three.min|GLTFLoader|OrbitControls|SkeletonUtils|GLTFExporter).js" | wc -l | grep -qx 5
       - uses: actions/upload-artifact@v4
         with: { name: ZaitoonStudio-APK, path: app/build/outputs/apk/debug/app-debug.apk }
+      - name: Save the APK to the apk branch (so it can be downloaded from the repo)
+        run: |
+          set -e
+          D=$(mktemp -d)
+          cp app/build/outputs/apk/debug/app-debug.apk $D/ZaitoonStudio-debug.apk
+          cd $D
+          git init -q -b apk
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add ZaitoonStudio-debug.apk
+          git commit -q -m "APK from run ${{ github.run_id }}"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" apk
