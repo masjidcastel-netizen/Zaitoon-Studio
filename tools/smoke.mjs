@@ -50,7 +50,7 @@ await step('music engine runs', () => pg.evaluate(() => typeof AC !== 'undefined
 await pg.click('#sp').catch(() => {});
 await step('paste-story tool', async () => { await pg.fill('#ps', 'Amina: Salam!\nOmar: Salam Amina, how are you?'); await pg.click('#us'); return pg.evaluate(() => S.scenes.length === 2 ? 'ok' : false); });
 await step('AI buttons disabled with reason', () => pg.evaluate(() => ['ai', 'am', 'aie'].every(i => document.getElementById(i).disabled)));
-await step('character library loads model', async () => { await pg.click('#libitems button'); await pg.waitForTimeout(6000); const s = await st(); return /ready/i.test(s) ? s : false; });
+await step('character library loads model', async () => { await pg.click('#libitems button'); let s = ''; for (let i = 0; i < 30; i++) { await pg.waitForTimeout(1000); s = await st(); if (/ready|could not/i.test(s)) break; } const info = await pg.evaluate(async () => { try { const r = await fetch('/models/modest-base.glb'); return 'glb http ' + r.status + ' ' + (await r.arrayBuffer()).byteLength + ' bytes; IM0=' + !!IM[0]; } catch (e) { return 'fetch failed ' + e.message; } }); return (/ready/i.test(s) ? 'status: ' : 'status (not ready): ') + s + ' | ' + info; });
 await step('export 3D pack', async () => { await pg.click('#x3'); await pg.waitForTimeout(3000); const s = await st(); return /Saved/i.test(s) ? s : false; });
 
 await browser.close(); srv.close();
