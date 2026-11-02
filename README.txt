@@ -9,7 +9,7 @@ Easiest (free, no coding): build with GitHub
 
 Alternative: Android Studio (free) -> Open this folder -> Build > Build APK(s).
 
-Needs Android 10 or newer and internet on first use (3D engine loads online).
+Needs Android 10 or newer. Works offline..
 Saved videos and files go to Downloads/ToonStudio.
 AI story writing, live rooms and team library only work in the claude.ai version.
 

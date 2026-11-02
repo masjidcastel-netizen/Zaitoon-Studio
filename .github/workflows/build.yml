@@ -9,6 +9,20 @@ jobs:
         with: { distribution: temurin, java-version: 17 }
       - uses: gradle/actions/setup-gradle@v4
         with: { gradle-version: 8.7 }
+      - name: Bundle the 3D engine inside the app (works offline)
+        run: |
+          set -e
+          A=app/src/main/assets
+          mkdir -p $A/vendor
+          curl -fsSL https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js -o $A/vendor/three.min.js
+          for f in loaders/GLTFLoader utils/SkeletonUtils controls/OrbitControls exporters/GLTFExporter; do
+            curl -fsSL https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/$f.js -o $A/vendor/$(basename $f).js
+          done
+          for f in $A/vendor/*.js; do test $(wc -c < $f) -gt 1000 || { echo "Bad download: $f"; exit 1; }; done
+          sed -i -E 's#https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js#/vendor/three.min.js#; s#https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/[a-z]+/#/vendor/#g' $A/index.html
+          if grep -E 'src="https?://' $A/index.html; then echo "External script still referenced"; exit 1; fi
       - run: gradle assembleDebug
+      - name: Check the APK contains the bundled engine
+        run: unzip -l app/build/outputs/apk/debug/app-debug.apk | grep -E "vendor/(three.min|GLTFLoader|OrbitControls|SkeletonUtils|GLTFExporter).js" | wc -l | grep -qx 5
       - uses: actions/upload-artifact@v4
         with: { name: ZaitoonStudio-APK, path: app/build/outputs/apk/debug/app-debug.apk }
