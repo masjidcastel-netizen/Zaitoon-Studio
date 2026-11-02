@@ -1,0 +1,13 @@
+SMOKE TEST REPORT
+PASS  engine loaded (THREE, loader, ToonTools)
+PASS  3D scene renders
+PASS  phone voices listed  -> 2 options
+PASS  Test voices speaks  -> 6 utterances
+PASS  Play with voice speaks the story  -> 9 utterances; status: Playing…
+PASS  music engine runs  -> running
+PASS  paste-story tool  -> ok
+PASS  AI buttons disabled with reason
+PASS  character library loads model  -> status: Imam Irfaan ready. | glb http 200 257628 bytes; IM0=true
+PASS  export 3D pack  -> Saved. Unzip it for animated character .glb files, scene and setting models, .obj, subtitles and scripts.
+
+LOG (first 60):
